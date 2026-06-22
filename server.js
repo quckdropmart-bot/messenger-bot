@@ -193,7 +193,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("========================================");
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Webhook URL: https://your-domain/api/messenger/webhook`);
+  console.log(`🌐 Webhook URL: https://${process.env.RAILWAY_STATIC_URL || "your-domain"}/api/messenger/webhook`);
   console.log("========================================");
   console.log("✅ Environment Check:");
   console.log("   - OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? "✓ Set" : "✗ Missing");
