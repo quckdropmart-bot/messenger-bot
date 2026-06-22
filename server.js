@@ -1,71 +1,50 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const app = express();
 
-// Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// JSON parser
+app.use(express.json());
 
-// Environment Variables
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'frame-lab-ctg-2026';
+// Env vars
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 
-// Webhook Verification (GET) - Facebook verification
+// GET - Verification
 app.get('/api/messenger/webhook', (req, res) => {
-  let mode = req.query['hub.mode'];
-  let token = req.query['hub.verify_token'];
-  let challenge = req.query['hub.challenge'];
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
 
-  if (mode && token) {
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('WEBHOOK_VERIFIED');
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
-    }
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('✅ Verified');
+    res.status(200).send(challenge);
   } else {
-    res.sendStatus(400);
+    res.sendStatus(403);
   }
 });
 
-// Receive Messages (POST)
+// POST - Receive messages (FIXED)
 app.post('/api/messenger/webhook', (req, res) => {
-  let body = req.body;
+  const body = req.body;
+  
+  if (!body || body.object !== 'page') {
+    return res.sendStatus(404);
+  }
 
-  if (body.object === 'page') {
+  // Process entries safely
+  if (body.entry && Array.isArray(body.entry)) {
     body.entry.forEach((entry) => {
-      let webhookEvent = entry.messaging[0];
-      console.log(webhookEvent);
-      
-      // Sender ID
-      let senderPsid = webhookEvent.sender.id;
-      
-      // Message text
-      if (webhookEvent.message) {
-        let receivedMessage = webhookEvent.message.text;
-        console.log('Received:', receivedMessage);
-        
-        // এখানে আপনার রেসপন্স লজিক যোগ করুন
-        // যেমন: sendTextMessage(senderPsid, "Hello!");
+      if (entry.messaging && entry.messaging[0]) {
+        const event = entry.messaging[0];
+        console.log('Message from:', event.sender?.id);
       }
     });
-    
-    res.status(200).send('EVENT_RECEIVED');
-  } else {
-    res.sendStatus(404);
   }
+  
+  res.status(200).send('EVENT_RECEIVED');
 });
 
 // Health check
-app.get('/', (req, res) => {
-  res.send('Messenger Bot is running!');
-});
+app.get('/', (req, res) => res.send('Bot running'));
 
-// Start server
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Webhook URL: https://your-domain/api/messenger/webhook`);
-  console.log(`Verify Token: ${VERIFY_TOKEN ? 'Set' : 'Missing'}`);
-  console.log(`Page Access Token: ${PAGE_ACCESS_TOKEN ? 'Set' : 'Missing'}`);
-});
+app.listen(PORT, () => console.log(`🚀 Port ${PORT}`));
