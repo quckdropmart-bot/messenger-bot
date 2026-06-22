@@ -1,28 +1,27 @@
 const express = require('express');
 const app = express();
 
-// JSON parser
+// JSON parser - bodyParser ছাড়াই কাজ করে
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Env vars
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 
-// GET - Verification
+// GET verification
 app.get('/api/messenger/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ Verified');
     res.status(200).send(challenge);
   } else {
     res.sendStatus(403);
   }
 });
 
-// POST - Receive messages (FIXED)
+// POST receive (null-safe)
 app.post('/api/messenger/webhook', (req, res) => {
   const body = req.body;
   
@@ -30,12 +29,11 @@ app.post('/api/messenger/webhook', (req, res) => {
     return res.sendStatus(404);
   }
 
-  // Process entries safely
   if (body.entry && Array.isArray(body.entry)) {
     body.entry.forEach((entry) => {
       if (entry.messaging && entry.messaging[0]) {
         const event = entry.messaging[0];
-        console.log('Message from:', event.sender?.id);
+        console.log('Received:', event);
       }
     });
   }
@@ -43,8 +41,7 @@ app.post('/api/messenger/webhook', (req, res) => {
   res.status(200).send('EVENT_RECEIVED');
 });
 
-// Health check
-app.get('/', (req, res) => res.send('Bot running'));
+app.get('/', (req, res) => res.send('Bot Running'));
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Port ${PORT}`));
+app.listen(PORT, () => console.log(`Server on ${PORT}`));
